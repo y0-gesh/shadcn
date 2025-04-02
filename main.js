@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron/main')
+const { app, BrowserWindow, protocol } = require('electron/main')
 const path = require('node:path')
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -9,7 +9,8 @@ function createWindow () {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: true
     }
   })
 
@@ -33,11 +34,20 @@ function createWindow () {
     win.loadURL('http://localhost:3000')
     win.webContents.openDevTools()
   } else {
-    win.loadFile(path.join(__dirname, 'out/index.html'))
+    // In production, load the index.html file
+    const indexPath = path.join(__dirname, 'out', 'index.html')
+    // Ensure file protocol is used
+    win.loadFile(indexPath)
   }
 }
 
+// Handle file protocol for static assets
 app.whenReady().then(() => {
+  protocol.interceptFileProtocol('file', (request, callback) => {
+    const url = request.url.substr(8)
+    callback({ path: path.normalize(`${__dirname}/${url}`) })
+  })
+  
   createWindow()
 
   app.on('activate', () => {

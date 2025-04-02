@@ -73,7 +73,15 @@
       "preload.js",
       "package.json",
       "out/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "public/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "out",
+        "to": "out",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": "nsis"
