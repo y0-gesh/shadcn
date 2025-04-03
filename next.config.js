@@ -2,7 +2,8 @@
 const nextConfig = {
   output: 'export',
   // Configure asset prefix for static export in Electron
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/' : '',
+  // assetPrefix: process.env.NODE_ENV === 'production' ? '/' : './',
+  assetPrefix: '',
   // Configure images for static export
   images: {
     unoptimized: true,
