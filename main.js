@@ -2,6 +2,11 @@ const { app, BrowserWindow, protocol } = require('electron/main')
 const path = require('node:path')
 const isDev = process.env.NODE_ENV === 'development'
 
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (require('electron-squirrel-startup')) {
+  app.quit()
+}
+
 function createWindow () {
   const win = new BrowserWindow({
     width: 1200,
@@ -10,7 +15,7 @@ function createWindow () {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webSecurity: true
+      webSecurity: false // Temporarily disable web security to debug asset loading
     }
   })
 
@@ -20,10 +25,11 @@ function createWindow () {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' http://localhost:3000;",
+          "default-src 'self' file: http://localhost:3000;",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval';",
           "style-src 'self' 'unsafe-inline';",
-          "img-src 'self' data: https:;",
+          "img-src 'self' data: file: https:;",
+          "font-src 'self' file: data:;",
           "connect-src 'self' http://localhost:3000;"
         ].join(' ')
       }
@@ -35,21 +41,31 @@ function createWindow () {
     win.webContents.openDevTools()
   } else {
     // In production, load the index.html file
-    // const indexPath = path.join(__dirname, 'out', 'index.html')
-    // Ensure file protocol is used
-    // win.loadFile(indexPath)
-    const indexPath = path.join(__dirname, 'out', 'index.html');
-    win.loadURL(`file://${indexPath}`);
+    const startUrl = path.join(__dirname, 'out', 'index.html')
+    win.loadURL(`file://${startUrl}`)
+    
+    // Open DevTools in production for debugging
+    win.webContents.openDevTools()
   }
 }
 
-// Handle file protocol for static assets
+// Register file protocol handler
 app.whenReady().then(() => {
+  // Register protocol handler for file:// URLs
   protocol.interceptFileProtocol('file', (request, callback) => {
-    const url = request.url.substr(8)
-    callback({ path: path.normalize(`${__dirname}./${url}`) })
+    let url = request.url.substr('file://'.length)
+    // Handle Windows paths
+    url = decodeURIComponent(url)
+    try {
+      // Resolve the path relative to the app directory
+      const resolvedPath = path.resolve(__dirname, url.startsWith('/') ? url.slice(1) : url)
+      callback({ path: resolvedPath })
+    } catch (error) {
+      console.error('Error handling file protocol:', error)
+      callback({ error: -2 /* net::FAILED */ })
+    }
   })
-  
+
   createWindow()
 
   app.on('activate', () => {
