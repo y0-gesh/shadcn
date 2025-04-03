@@ -35,9 +35,11 @@ function createWindow () {
     win.webContents.openDevTools()
   } else {
     // In production, load the index.html file
-    const indexPath = path.join(__dirname, 'out', 'index.html')
+    // const indexPath = path.join(__dirname, 'out', 'index.html')
     // Ensure file protocol is used
-    win.loadFile(indexPath)
+    // win.loadFile(indexPath)
+    const indexPath = path.join(__dirname, 'out', 'index.html');
+    win.loadURL(`file://${indexPath}`);
   }
 }
 
@@ -45,7 +47,7 @@ function createWindow () {
 app.whenReady().then(() => {
   protocol.interceptFileProtocol('file', (request, callback) => {
     const url = request.url.substr(8)
-    callback({ path: path.normalize(`${__dirname}/${url}`) })
+    callback({ path: path.normalize(`${__dirname}./${url}`) })
   })
   
   createWindow()
